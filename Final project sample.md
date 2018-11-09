@@ -1,0 +1,1132 @@
+
+# Find Location to Build New Movie Theater in Chennai, India
+
+Capstone Project - The Battle of Neighbourhoods
+
+
+## Introduction 
+
+#### Recommend a location in Chennai to open a new movie theatre.
+
+My Client, the stakeholder wants to open a new cinema as his company's new business.
+
+He explains that watching movie is a part of whole afternoon or night activities. Cinema should have many restaurants and shopping places nearby. Transportation is also an important factor. Customer can walk to cinema within 5 minutes from public transport facilities is perfect.
+
+He wants me concentrated on selection of cinema location according to its nearby environment. Cinema facility and rental price is not my concern. He requested to compare agaisnt top favourite movie theatres with foursquare online traffic (tips & rating).
+
+He selected 5 possible locations to build the cinema. Which location should be suggested to the stakeholder?
+
+
+```python
+import pandas as pd 
+possible_options = [
+    { 'Options': 'Option1', 'Area': 'George Town, Chennai'},
+    { 'Options': 'Option2', 'Area': 'Anna Nagar, Chennai'},
+    { 'Options': 'Option3', 'Area': 'Nandanam, Chennai'},
+    { 'Options': 'Option4', 'Area': 'Nungambakkam, Chennai'},
+    { 'Options': 'Option5', 'Area': 'Saligramam, Chennai'},
+]
+
+df_possible_options = pd.DataFrame(possible_options, columns=['Options', 'Area'])
+df_possible_options
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Options</th>
+      <th>Area</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Option1</td>
+      <td>George Town, Chennai</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Option2</td>
+      <td>Anna Nagar, Chennai</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Option3</td>
+      <td>Nandanam, Chennai</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Option4</td>
+      <td>Nungambakkam, Chennai</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Option5</td>
+      <td>Saligramam, Chennai</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+# Data
+
+According to the question, following data are required.
+
+#### Geographic coordinate of Chennai movie theatres
+I need to compare 5 possible locations with current cinemas in Chennai. Therefore, I need to find a list of Chennai movie theatre and it's geographic cordinates. I have extracted this data using Foursquare API, by search query 'Movie'. 
+
+Here is the list of Movie theatres in Chennai,
+
+
+```python
+# Import all the necessary packages & libraries
+
+!pip install -U googlemaps
+!pip install folium
+!pip install geocoder
+!pip install foursquare
+import numpy as np 
+import pandas as pd 
+from bs4 import BeautifulSoup
+from urllib.request import urlopen
+import requests
+import csv
+import geocoder 
+import folium
+import geopy
+import tqdm
+from geopy.geocoders import Nominatim
+import folium # map rendering library
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
+import json
+from pandas.io.json import json_normalize
+import googlemaps
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.cluster import KMeans
+from scipy import stats
+import seaborn as sns
+from pathlib import Path
+import os
+import foursquare
+%matplotlib inline
+```
+
+    Requirement already up-to-date: googlemaps in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages
+    Requirement not upgraded as not directly required: requests<3.0,>=2.11.1 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from googlemaps)
+    Requirement not upgraded as not directly required: chardet<3.1.0,>=3.0.2 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests<3.0,>=2.11.1->googlemaps)
+    Requirement not upgraded as not directly required: idna<2.7,>=2.5 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests<3.0,>=2.11.1->googlemaps)
+    Requirement not upgraded as not directly required: urllib3<1.23,>=1.21.1 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests<3.0,>=2.11.1->googlemaps)
+    Requirement not upgraded as not directly required: certifi>=2017.4.17 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests<3.0,>=2.11.1->googlemaps)
+    Requirement not upgraded as not directly required: folium in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages
+    Requirement not upgraded as not directly required: jinja2 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from folium)
+    Requirement not upgraded as not directly required: six in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from folium)
+    Requirement not upgraded as not directly required: branca>=0.3.0 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from folium)
+    Requirement not upgraded as not directly required: requests in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from folium)
+    Requirement not upgraded as not directly required: numpy in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from folium)
+    Requirement not upgraded as not directly required: MarkupSafe>=0.23 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from jinja2->folium)
+    Requirement not upgraded as not directly required: chardet<3.1.0,>=3.0.2 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests->folium)
+    Requirement not upgraded as not directly required: idna<2.7,>=2.5 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests->folium)
+    Requirement not upgraded as not directly required: urllib3<1.23,>=1.21.1 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests->folium)
+    Requirement not upgraded as not directly required: certifi>=2017.4.17 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests->folium)
+    Requirement not upgraded as not directly required: geocoder in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages
+    Requirement not upgraded as not directly required: six in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from geocoder)
+    Requirement not upgraded as not directly required: future in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from geocoder)
+    Requirement not upgraded as not directly required: click in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from geocoder)
+    Requirement not upgraded as not directly required: requests in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from geocoder)
+    Requirement not upgraded as not directly required: ratelim in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from geocoder)
+    Requirement not upgraded as not directly required: chardet<3.1.0,>=3.0.2 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests->geocoder)
+    Requirement not upgraded as not directly required: idna<2.7,>=2.5 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests->geocoder)
+    Requirement not upgraded as not directly required: urllib3<1.23,>=1.21.1 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests->geocoder)
+    Requirement not upgraded as not directly required: certifi>=2017.4.17 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests->geocoder)
+    Requirement not upgraded as not directly required: decorator in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from ratelim->geocoder)
+    Requirement not upgraded as not directly required: foursquare in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages
+    Requirement not upgraded as not directly required: six in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from foursquare)
+    Requirement not upgraded as not directly required: requests>=2.1 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from foursquare)
+    Requirement not upgraded as not directly required: chardet<3.1.0,>=3.0.2 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests>=2.1->foursquare)
+    Requirement not upgraded as not directly required: idna<2.7,>=2.5 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests>=2.1->foursquare)
+    Requirement not upgraded as not directly required: urllib3<1.23,>=1.21.1 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests>=2.1->foursquare)
+    Requirement not upgraded as not directly required: certifi>=2017.4.17 in /opt/conda/envs/DSX-Python35/lib/python3.5/site-packages (from requests>=2.1->foursquare)
+
+
+
+```python
+#@hidden_cell
+# Set the Foursquare credetials
+
+CLIENT_ID = '4BHK2XBPCKFPKJLNJYU3EWIJTI1CV4F151OYTE5XXNQMBODF' # your Foursquare ID
+CLIENT_SECRET = 'BL12WZBHZUM3PRRUSHWKGTTDSD400ZV5FYJ0IP20F3TZQHWF' # your Foursquare Secret
+VERSION = '20181105' # Foursquare API version
+```
+
+
+```python
+# Get the Geographical cooridantes for Chennai from Geolocator 
+address = 'Marina Beach, Chennai'
+
+geolocator = Nominatim()
+location = geolocator.geocode(address)
+latitude = location.latitude
+longitude = location.longitude
+print('The geograpical coordinate of Chennai are {}, {}.'.format(latitude, longitude))
+
+
+# Setting the Venue Limits, radius & Serach quary as'Movie' for Chennai
+LIMIT=500
+radius=10000
+query='Movie'
+url = 'https://api.foursquare.com/v2/venues/explore?client_id={}&client_secret={}&ll={},{}&v={}&radius={}&limit={}&query={}'.format(CLIENT_ID, CLIENT_SECRET, latitude, longitude, VERSION, radius, LIMIT,query)
+
+# Get the URL data in JSON format
+results = requests.get(url).json()
+
+# function that extracts the category of the venue
+def get_category_type(row):
+    try:
+        categories_list = row['categories']
+    except:
+        categories_list = row['venue.categories']
+        
+    if len(categories_list) == 0:
+        return None
+    else:
+        return categories_list[0]['name']
+
+# Select the list of Movie theatres with it's geographical coordinates
+
+venues = results['response']['groups'][0]['items']
+    
+nearby_venues = json_normalize(venues) # flatten JSON
+
+# filter columns
+filtered_columns = ['venue.name', 'venue.categories', 'venue.location.address','venue.location.lat', 'venue.location.lng', 'venue.id']
+nearby_venues =nearby_venues.loc[:, filtered_columns]
+
+# filter the category for each row
+nearby_venues['venue.categories'] = nearby_venues.apply(get_category_type, axis=1)
+
+# clean columns
+nearby_venues.columns = [col.split(".")[-1] for col in nearby_venues.columns]
+nearby_venues.dropna(inplace=True)
+nearby_venues.reset_index(drop=True, inplace=True)
+
+print('{} Movie Theatres were returned by Foursquare.'.format(nearby_venues.shape[0]))
+
+nearby_venues.head()
+```
+
+    The geograpical coordinate of Chennai are 13.0518752, 80.2830143027039.
+    43 Movie Theatres were returned by Foursquare.
+
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>name</th>
+      <th>categories</th>
+      <th>address</th>
+      <th>lat</th>
+      <th>lng</th>
+      <th>id</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Escape Cinemas</td>
+      <td>Multiplex</td>
+      <td>Express Avenue</td>
+      <td>13.058746</td>
+      <td>80.264170</td>
+      <td>4c712b75f52cb71358fbb3af</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Sathyam Cinemas</td>
+      <td>Movie Theater</td>
+      <td>8, Thiru-vi-ka Road</td>
+      <td>13.055688</td>
+      <td>80.258096</td>
+      <td>4b7fba44f964a520073b30e3</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Six Degree</td>
+      <td>Movie Theater</td>
+      <td>Sathyam Cinemas</td>
+      <td>13.055605</td>
+      <td>80.258115</td>
+      <td>4d4597f1e198721e2161c78b</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Carve at Escape Cinemas</td>
+      <td>Movie Theater</td>
+      <td>Express Avenue</td>
+      <td>13.058681</td>
+      <td>80.264379</td>
+      <td>50080901e4b096ea743b677b</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Devi Cineplex</td>
+      <td>Multiplex</td>
+      <td>Mount Road</td>
+      <td>13.066248</td>
+      <td>80.270877</td>
+      <td>517c1435e4b0a52325a8ee34</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+Marked the cinema theatres in Chennai Map
+
+
+```python
+# create map of Manhattan using latitude and longitude values
+map_chennai = folium.Map(location=[latitude, longitude], zoom_start=13)
+
+# add markers to map
+for lat, lng, label in zip(nearby_venues['lat'], nearby_venues['lng'], nearby_venues['name']):
+    label = folium.Popup(label, parse_html=True)
+    folium.CircleMarker(
+        [lat, lng],
+        radius=5,
+        popup=label,
+        color='blue',
+        fill=True,
+        fill_color='#3186cc',
+        fill_opacity=0.7).add_to(map_chennai)  
+    
+map_chennai
+```
+
+
+
+
+<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><iframe src="data:text/html;charset=utf-8;base64,PCFET0NUWVBFIGh0bWw+CjxoZWFkPiAgICAKICAgIDxtZXRhIGh0dHAtZXF1aXY9ImNvbnRlbnQtdHlwZSIgY29udGVudD0idGV4dC9odG1sOyBjaGFyc2V0PVVURi04IiAvPgogICAgPHNjcmlwdD5MX1BSRUZFUl9DQU5WQVMgPSBmYWxzZTsgTF9OT19UT1VDSCA9IGZhbHNlOyBMX0RJU0FCTEVfM0QgPSBmYWxzZTs8L3NjcmlwdD4KICAgIDxzY3JpcHQgc3JjPSJodHRwczovL2Nkbi5qc2RlbGl2ci5uZXQvbnBtL2xlYWZsZXRAMS4yLjAvZGlzdC9sZWFmbGV0LmpzIj48L3NjcmlwdD4KICAgIDxzY3JpcHQgc3JjPSJodHRwczovL2FqYXguZ29vZ2xlYXBpcy5jb20vYWpheC9saWJzL2pxdWVyeS8xLjExLjEvanF1ZXJ5Lm1pbi5qcyI+PC9zY3JpcHQ+CiAgICA8c2NyaXB0IHNyYz0iaHR0cHM6Ly9tYXhjZG4uYm9vdHN0cmFwY2RuLmNvbS9ib290c3RyYXAvMy4yLjAvanMvYm9vdHN0cmFwLm1pbi5qcyI+PC9zY3JpcHQ+CiAgICA8c2NyaXB0IHNyYz0iaHR0cHM6Ly9jZG5qcy5jbG91ZGZsYXJlLmNvbS9hamF4L2xpYnMvTGVhZmxldC5hd2Vzb21lLW1hcmtlcnMvMi4wLjIvbGVhZmxldC5hd2Vzb21lLW1hcmtlcnMuanMiPjwvc2NyaXB0PgogICAgPGxpbmsgcmVsPSJzdHlsZXNoZWV0IiBocmVmPSJodHRwczovL2Nkbi5qc2RlbGl2ci5uZXQvbnBtL2xlYWZsZXRAMS4yLjAvZGlzdC9sZWFmbGV0LmNzcyIvPgogICAgPGxpbmsgcmVsPSJzdHlsZXNoZWV0IiBocmVmPSJodHRwczovL21heGNkbi5ib290c3RyYXBjZG4uY29tL2Jvb3RzdHJhcC8zLjIuMC9jc3MvYm9vdHN0cmFwLm1pbi5jc3MiLz4KICAgIDxsaW5rIHJlbD0ic3R5bGVzaGVldCIgaHJlZj0iaHR0cHM6Ly9tYXhjZG4uYm9vdHN0cmFwY2RuLmNvbS9ib290c3RyYXAvMy4yLjAvY3NzL2Jvb3RzdHJhcC10aGVtZS5taW4uY3NzIi8+CiAgICA8bGluayByZWw9InN0eWxlc2hlZXQiIGhyZWY9Imh0dHBzOi8vbWF4Y2RuLmJvb3RzdHJhcGNkbi5jb20vZm9udC1hd2Vzb21lLzQuNi4zL2Nzcy9mb250LWF3ZXNvbWUubWluLmNzcyIvPgogICAgPGxpbmsgcmVsPSJzdHlsZXNoZWV0IiBocmVmPSJodHRwczovL2NkbmpzLmNsb3VkZmxhcmUuY29tL2FqYXgvbGlicy9MZWFmbGV0LmF3ZXNvbWUtbWFya2Vycy8yLjAuMi9sZWFmbGV0LmF3ZXNvbWUtbWFya2Vycy5jc3MiLz4KICAgIDxsaW5rIHJlbD0ic3R5bGVzaGVldCIgaHJlZj0iaHR0cHM6Ly9yYXdnaXQuY29tL3B5dGhvbi12aXN1YWxpemF0aW9uL2ZvbGl1bS9tYXN0ZXIvZm9saXVtL3RlbXBsYXRlcy9sZWFmbGV0LmF3ZXNvbWUucm90YXRlLmNzcyIvPgogICAgPHN0eWxlPmh0bWwsIGJvZHkge3dpZHRoOiAxMDAlO2hlaWdodDogMTAwJTttYXJnaW46IDA7cGFkZGluZzogMDt9PC9zdHlsZT4KICAgIDxzdHlsZT4jbWFwIHtwb3NpdGlvbjphYnNvbHV0ZTt0b3A6MDtib3R0b206MDtyaWdodDowO2xlZnQ6MDt9PC9zdHlsZT4KICAgIAogICAgICAgICAgICA8c3R5bGU+ICNtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcgewogICAgICAgICAgICAgICAgcG9zaXRpb24gOiByZWxhdGl2ZTsKICAgICAgICAgICAgICAgIHdpZHRoIDogMTAwLjAlOwogICAgICAgICAgICAgICAgaGVpZ2h0OiAxMDAuMCU7CiAgICAgICAgICAgICAgICBsZWZ0OiAwLjAlOwogICAgICAgICAgICAgICAgdG9wOiAwLjAlOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICA8L3N0eWxlPgogICAgICAgIAo8L2hlYWQ+Cjxib2R5PiAgICAKICAgIAogICAgICAgICAgICA8ZGl2IGNsYXNzPSJmb2xpdW0tbWFwIiBpZD0ibWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3IiA+PC9kaXY+CiAgICAgICAgCjwvYm9keT4KPHNjcmlwdD4gICAgCiAgICAKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGJvdW5kcyA9IG51bGw7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgdmFyIG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyA9IEwubWFwKAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJ21hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNycsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB7Y2VudGVyOiBbMTMuMDUxODc1Miw4MC4yODMwMTQzMDI3MDM5XSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHpvb206IDEzLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbWF4Qm91bmRzOiBib3VuZHMsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBsYXllcnM6IFtdLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgd29ybGRDb3B5SnVtcDogZmFsc2UsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBjcnM6IEwuQ1JTLkVQU0czODU3CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0pOwogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgdGlsZV9sYXllcl9kNTBkYjk3YzAzNTQ0OWM1OGZiY2ZkZGNkYzQ4NDg0MCA9IEwudGlsZUxheWVyKAogICAgICAgICAgICAgICAgJ2h0dHBzOi8ve3N9LnRpbGUub3BlbnN0cmVldG1hcC5vcmcve3p9L3t4fS97eX0ucG5nJywKICAgICAgICAgICAgICAgIHsKICAiYXR0cmlidXRpb24iOiBudWxsLAogICJkZXRlY3RSZXRpbmEiOiBmYWxzZSwKICAibWF4Wm9vbSI6IDE4LAogICJtaW5ab29tIjogMSwKICAibm9XcmFwIjogZmFsc2UsCiAgInN1YmRvbWFpbnMiOiAiYWJjIgp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfYjFhZjQwNjM4NmRjNDIyZmEyN2M4ZmMxNmU5OTU0MGUgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wNTg3NDU3MTQwMzQ2OTUsODAuMjY0MTcwMTM0ODg4ODddLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfODE0NTRkOWI1NmIzNDRlMDkzYTkxMzBmZDk1YTRiN2MgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfMTU1Y2ZmMjI2ZWRiNDNmZGJkM2JlMTczY2M5OWYyZTMgPSAkKCc8ZGl2IGlkPSJodG1sXzE1NWNmZjIyNmVkYjQzZmRiZDNiZTE3M2NjOTlmMmUzIiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5Fc2NhcGUgQ2luZW1hczwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfODE0NTRkOWI1NmIzNDRlMDkzYTkxMzBmZDk1YTRiN2Muc2V0Q29udGVudChodG1sXzE1NWNmZjIyNmVkYjQzZmRiZDNiZTE3M2NjOTlmMmUzKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2IxYWY0MDYzODZkYzQyMmZhMjdjOGZjMTZlOTk1NDBlLmJpbmRQb3B1cChwb3B1cF84MTQ1NGQ5YjU2YjM0NGUwOTNhOTEzMGZkOTVhNGI3Yyk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9lMTAzMTFkZjdmMWQ0YjRhODk5NmNlYjMxMTUwYzUwYSA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA1NTY4Nzg1NzMxNzgyMSw4MC4yNTgwOTYzMjI1NTY0NV0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF8wN2Q1YWJhNDE1ZGE0NjkzYTgxYjYzMzI5N2I1YmJjZiA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF84NDEzNzBkODU1MmY0NzJjODQ1NTdjZDBiMDU4MTM3NSA9ICQoJzxkaXYgaWQ9Imh0bWxfODQxMzcwZDg1NTJmNDcyYzg0NTU3Y2QwYjA1ODEzNzUiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPlNhdGh5YW0gQ2luZW1hczwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfMDdkNWFiYTQxNWRhNDY5M2E4MWI2MzMyOTdiNWJiY2Yuc2V0Q29udGVudChodG1sXzg0MTM3MGQ4NTUyZjQ3MmM4NDU1N2NkMGIwNTgxMzc1KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2UxMDMxMWRmN2YxZDRiNGE4OTk2Y2ViMzExNTBjNTBhLmJpbmRQb3B1cChwb3B1cF8wN2Q1YWJhNDE1ZGE0NjkzYTgxYjYzMzI5N2I1YmJjZik7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl8xNjJkYTRhYjM1OTQ0ZjM4YmRjMjhjMDNmZDA1MzU3NyA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA1NTYwNDc5Mzk1ODI5LDgwLjI1ODExNTQ5NTgwMjg1XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzQ0NzllYTc4ZGI1YzQxOWI4NjkxNGI1NGQyZjM3NDMxID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sXzkxMzUxY2FiOGRjMzQ1MWRiOTQ2N2FlZTJkZGUwNWJhID0gJCgnPGRpdiBpZD0iaHRtbF85MTM1MWNhYjhkYzM0NTFkYjk0NjdhZWUyZGRlMDViYSIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+U2l4IERlZ3JlZTwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfNDQ3OWVhNzhkYjVjNDE5Yjg2OTE0YjU0ZDJmMzc0MzEuc2V0Q29udGVudChodG1sXzkxMzUxY2FiOGRjMzQ1MWRiOTQ2N2FlZTJkZGUwNWJhKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyXzE2MmRhNGFiMzU5NDRmMzhiZGMyOGMwM2ZkMDUzNTc3LmJpbmRQb3B1cChwb3B1cF80NDc5ZWE3OGRiNWM0MTliODY5MTRiNTRkMmYzNzQzMSk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9mNDEzNTJhOWUyYzY0ODE5ODkwYjU5ODE2Y2UyYmUyNiA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA1ODY4MDYzNjk1NTc4Nyw4MC4yNjQzNzg3Nzk3Nzc0OV0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF84NTdkNjU4YjEyMDM0YzU5YjgzZDI2NjRmM2Y0NmNhOCA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF8yMmRjNTVmNGJhNzI0MTA2YTJjYjEwMTRiM2ExNjM5OCA9ICQoJzxkaXYgaWQ9Imh0bWxfMjJkYzU1ZjRiYTcyNDEwNmEyY2IxMDE0YjNhMTYzOTgiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPkNhcnZlIGF0IEVzY2FwZSBDaW5lbWFzPC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF84NTdkNjU4YjEyMDM0YzU5YjgzZDI2NjRmM2Y0NmNhOC5zZXRDb250ZW50KGh0bWxfMjJkYzU1ZjRiYTcyNDEwNmEyY2IxMDE0YjNhMTYzOTgpOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfZjQxMzUyYTllMmM2NDgxOTg5MGI1OTgxNmNlMmJlMjYuYmluZFBvcHVwKHBvcHVwXzg1N2Q2NThiMTIwMzRjNTliODNkMjY2NGYzZjQ2Y2E4KTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyX2MyZTM2N2RkNWY0ZTQxZjM5NzdlNzBhOGY3NzdlMjZjID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTMuMDY2MjQ3NTkwOTk3MDI4LDgwLjI3MDg3Njg4NDQ2MDQ1XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzQwZGQwM2MwY2RlOTQ0MjU5NDFmOTUyNjJjOWQ2ODRjID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sX2JlZmU5OTc0NjlhZTQ5ZTI4YzVhNGZhOWY3MTM0ZjA4ID0gJCgnPGRpdiBpZD0iaHRtbF9iZWZlOTk3NDY5YWU0OWUyOGM1YTRmYTlmNzEzNGYwOCIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+RGV2aSBDaW5lcGxleDwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfNDBkZDAzYzBjZGU5NDQyNTk0MWY5NTI2MmM5ZDY4NGMuc2V0Q29udGVudChodG1sX2JlZmU5OTc0NjlhZTQ5ZTI4YzVhNGZhOWY3MTM0ZjA4KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2MyZTM2N2RkNWY0ZTQxZjM5NzdlNzBhOGY3NzdlMjZjLmJpbmRQb3B1cChwb3B1cF80MGRkMDNjMGNkZTk0NDI1OTQxZjk1MjYyYzlkNjg0Yyk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl81M2I1ZGY3NTQxODI0MzgyYmI0YWNlZjQxMTg2ZjUzZiA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA0MzE0Mzc0NjMxMTcyNCw4MC4yNzM4ODIxNTIzMTI5MV0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF81N2YyMWQwMTEwYTA0ZjIzYjViYTY5NTI0ZTQ0N2YyMyA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF9mOWFkMGZkNzk1YzM0OTFkYjM4YmNlN2EyZjI4MGI2MCA9ICQoJzxkaXYgaWQ9Imh0bWxfZjlhZDBmZDc5NWMzNDkxZGIzOGJjZTdhMmYyODBiNjAiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPklub3ggTW92aWVzPC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF81N2YyMWQwMTEwYTA0ZjIzYjViYTY5NTI0ZTQ0N2YyMy5zZXRDb250ZW50KGh0bWxfZjlhZDBmZDc5NWMzNDkxZGIzOGJjZTdhMmYyODBiNjApOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfNTNiNWRmNzU0MTgyNDM4MmJiNGFjZWY0MTE4NmY1M2YuYmluZFBvcHVwKHBvcHVwXzU3ZjIxZDAxMTBhMDRmMjNiNWJhNjk1MjRlNDQ3ZjIzKTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyX2FjYTk5NmQ1MzcyZTQwZTJiZjQ2M2UyMDAzYThhOWE4ID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTMuMDU1NDQzNzM2MTkxNjUsODAuMjU3ODU5NTUwNjc5NjNdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfM2E2MGZhMzY0MTkyNDM0NGI3ZTQ1YjA2YzAwZTA0ZDUgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfZWM0N2FmMGZjNDEzNDY2Yjg0NmEwNWFjYTZjNDg0YzUgPSAkKCc8ZGl2IGlkPSJodG1sX2VjNDdhZjBmYzQxMzQ2NmI4NDZhMDVhY2E2YzQ4NGM1IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5TZWFzb25zPC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF8zYTYwZmEzNjQxOTI0MzQ0YjdlNDViMDZjMDBlMDRkNS5zZXRDb250ZW50KGh0bWxfZWM0N2FmMGZjNDEzNDY2Yjg0NmEwNWFjYTZjNDg0YzUpOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfYWNhOTk2ZDUzNzJlNDBlMmJmNDYzZTIwMDNhOGE5YTguYmluZFBvcHVwKHBvcHVwXzNhNjBmYTM2NDE5MjQzNDRiN2U0NWIwNmMwMGUwNGQ1KTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyXzNiMWM2MjQ5N2MwYzQ1ODRhNWNmNGM4MDg0MGMzYjk4ID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTMuMDc2MjM1MjQzMTU2NTk4LDgwLjI2NDA3MTIwMDYyMTA5XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzFiMGM3YjNkNmNkZjQwYjBiMTM3NzNlNjM2ZGMzYTU1ID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sXzU2YWY0Y2RkYzJkYTQxZDM4OTJmMmYzOWE0MjFjZTBhID0gJCgnPGRpdiBpZD0iaHRtbF81NmFmNGNkZGMyZGE0MWQzODkyZjJmMzlhNDIxY2UwYSIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+QWxiZXJ0IFRoZWF0cmU8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwXzFiMGM3YjNkNmNkZjQwYjBiMTM3NzNlNjM2ZGMzYTU1LnNldENvbnRlbnQoaHRtbF81NmFmNGNkZGMyZGE0MWQzODkyZjJmMzlhNDIxY2UwYSk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl8zYjFjNjI0OTdjMGM0NTg0YTVjZjRjODA4NDBjM2I5OC5iaW5kUG9wdXAocG9wdXBfMWIwYzdiM2Q2Y2RmNDBiMGIxMzc3M2U2MzZkYzNhNTUpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfYjFmMDJhZWRhNzExNDMyM2I3NDk4N2VkZTMzMDcxMjQgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wNTAzODMwNzkxODgxMzMsODAuMjA5NTQxMzQ0NTY1MV0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF9hMGRiNjdlNjNjN2Q0MjdkOTI3Yjk0NDU0Y2ExMzMxZCA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF9mNGY3NWVmOGM5YzI0NGNlYTcxODBjMzk2ZTdkMDhiYSA9ICQoJzxkaXYgaWQ9Imh0bWxfZjRmNzVlZjhjOWMyNDRjZWE3MTgwYzM5NmU3ZDA4YmEiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPlBhbGF6em88L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2EwZGI2N2U2M2M3ZDQyN2Q5MjdiOTQ0NTRjYTEzMzFkLnNldENvbnRlbnQoaHRtbF9mNGY3NWVmOGM5YzI0NGNlYTcxODBjMzk2ZTdkMDhiYSk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl9iMWYwMmFlZGE3MTE0MzIzYjc0OTg3ZWRlMzMwNzEyNC5iaW5kUG9wdXAocG9wdXBfYTBkYjY3ZTYzYzdkNDI3ZDkyN2I5NDQ1NGNhMTMzMWQpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfNTg4NTA2YjRkNWQyNDMxZjgwZjk1M2YzOTgwZjg3NzIgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wNDM2ODA1MTYzMDY4ODQsODAuMjcyNjY5Mzg1ODQ3MzhdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfYzZmYjEyZjc5YWRiNDZkYTliNWQ0MDVlZjc2ODhjODEgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfMzBiNDIxNjU1OWI4NDcxMjliMGIyOGZlMDE2NzMxMjUgPSAkKCc8ZGl2IGlkPSJodG1sXzMwYjQyMTY1NTliODQ3MTI5YjBiMjhmZTAxNjczMTI1IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5TY3JlZW4gNCBAIElub3g8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2M2ZmIxMmY3OWFkYjQ2ZGE5YjVkNDA1ZWY3Njg4YzgxLnNldENvbnRlbnQoaHRtbF8zMGI0MjE2NTU5Yjg0NzEyOWIwYjI4ZmUwMTY3MzEyNSk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl81ODg1MDZiNGQ1ZDI0MzFmODBmOTUzZjM5ODBmODc3Mi5iaW5kUG9wdXAocG9wdXBfYzZmYjEyZjc5YWRiNDZkYTliNWQ0MDVlZjc2ODhjODEpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfMjY0ZjI2MmI0YWMwNDA0YzkzZDM5N2ZlM2VjN2I1N2QgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wNjYyMjA5NTAzMDE1MDgsODAuMjcwNDE3OTkyMjY2NV0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF9iMWU2YzE0NjBjNTE0ZGZkYWY0ZDY1NjkzZDczZGVkNyA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF9iNTAxNTE3YTc3NzQ0MGRiOWNlNjc1NGFiZTFkN2M3NyA9ICQoJzxkaXYgaWQ9Imh0bWxfYjUwMTUxN2E3Nzc0NDBkYjljZTY3NTRhYmUxZDdjNzciIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPkRldmkgdGhlYXRlcnM8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2IxZTZjMTQ2MGM1MTRkZmRhZjRkNjU2OTNkNzNkZWQ3LnNldENvbnRlbnQoaHRtbF9iNTAxNTE3YTc3NzQ0MGRiOWNlNjc1NGFiZTFkN2M3Nyk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl8yNjRmMjYyYjRhYzA0MDRjOTNkMzk3ZmUzZWM3YjU3ZC5iaW5kUG9wdXAocG9wdXBfYjFlNmMxNDYwYzUxNGRmZGFmNGQ2NTY5M2Q3M2RlZDcpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfOThiMTc0ZWU5MmZjNGY0Nzg2MzYzMTU0YmY2NjlmY2MgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wNjg3Mjk1NTkzOTE0MDksODAuMjcwMTE4MDc5NjA4NjVdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfMGE2N2IzZWE3ZTllNDhkYmI2NGVkMjY2ZTI4ODdiZjYgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfY2U5ZDJhMDhhZjc0NDc1NWEwZmVjMzMyZTVmZDIzMjYgPSAkKCc8ZGl2IGlkPSJodG1sX2NlOWQyYTA4YWY3NDQ3NTVhMGZlYzMzMmU1ZmQyMzI2IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5DYXNpbm8gVGhlYXRlcjwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfMGE2N2IzZWE3ZTllNDhkYmI2NGVkMjY2ZTI4ODdiZjYuc2V0Q29udGVudChodG1sX2NlOWQyYTA4YWY3NDQ3NTVhMGZlYzMzMmU1ZmQyMzI2KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyXzk4YjE3NGVlOTJmYzRmNDc4NjM2MzE1NGJmNjY5ZmNjLmJpbmRQb3B1cChwb3B1cF8wYTY3YjNlYTdlOWU0OGRiYjY0ZWQyNjZlMjg4N2JmNik7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl81ODNlOTJiNjNjZDI0MGY2OGI1YjUyNTQ2NjBiNjQzYiA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA3Mzc5ODcwMjQ1NjA4Niw4MC4yMjEzOTIzNzYyNjUwMl0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF9iMDNlNmY0ZDFmMDI0YWFlYmEyZjI0MmM5ODZkNmZmYyA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF81ZTQ0ZmFjYjhkNjQ0Nzk3YTc3ZTA0YWVjYTFmZmE2NyA9ICQoJzxkaXYgaWQ9Imh0bWxfNWU0NGZhY2I4ZDY0NDc5N2E3N2UwNGFlY2ExZmZhNjciIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPlBWUjwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfYjAzZTZmNGQxZjAyNGFhZWJhMmYyNDJjOTg2ZDZmZmMuc2V0Q29udGVudChodG1sXzVlNDRmYWNiOGQ2NDQ3OTdhNzdlMDRhZWNhMWZmYTY3KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyXzU4M2U5MmI2M2NkMjQwZjY4YjViNTI1NDY2MGI2NDNiLmJpbmRQb3B1cChwb3B1cF9iMDNlNmY0ZDFmMDI0YWFlYmEyZjI0MmM5ODZkNmZmYyk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9hNjY4ZDU0MWIwODQ0ZjkzOGFiMzI4Y2NlNDlmNTYyNCA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA1NTEzNjE3Njg0ODYzLDgwLjI1ODkxMjk1OTQ0NjM1XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwX2IyZDMyOTQ2YjE4MDQ2ZDU4NDJkZDVmNTdhNmUyM2QzID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sXzc5MDJkY2RjNmJkYjQ2ODY5N2Y2YjUyNGYzMzNmZTA5ID0gJCgnPGRpdiBpZD0iaHRtbF83OTAyZGNkYzZiZGI0Njg2OTdmNmI1MjRmMzMzZmUwOSIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+U2FudGhhbTwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfYjJkMzI5NDZiMTgwNDZkNTg0MmRkNWY1N2E2ZTIzZDMuc2V0Q29udGVudChodG1sXzc5MDJkY2RjNmJkYjQ2ODY5N2Y2YjUyNGYzMzNmZTA5KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2E2NjhkNTQxYjA4NDRmOTM4YWIzMjhjY2U0OWY1NjI0LmJpbmRQb3B1cChwb3B1cF9iMmQzMjk0NmIxODA0NmQ1ODQyZGQ1ZjU3YTZlMjNkMyk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9lMTBmZjE2YWMzMjM0NGZmODRjNDRkZjk0NWM5M2ZhNiA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA1NTcyNjE1ODkyMDUwOSw4MC4yNTg0NjY1MzIyNTQ2OV0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF9kZjMxNWRlNTlkODE0NmZhODEyNThiNmJlNGU5NjkxNiA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF9jMzAzOTBhN2I4ZjI0ZmVkOTBjNzlkYThjODZiMWQyYSA9ICQoJzxkaXYgaWQ9Imh0bWxfYzMwMzkwYTdiOGYyNGZlZDkwYzc5ZGE4Yzg2YjFkMmEiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPnNhdHlhbTwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfZGYzMTVkZTU5ZDgxNDZmYTgxMjU4YjZiZTRlOTY5MTYuc2V0Q29udGVudChodG1sX2MzMDM5MGE3YjhmMjRmZWQ5MGM3OWRhOGM4NmIxZDJhKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2UxMGZmMTZhYzMyMzQ0ZmY4NGM0NGRmOTQ1YzkzZmE2LmJpbmRQb3B1cChwb3B1cF9kZjMxNWRlNTlkODE0NmZhODEyNThiNmJlNGU5NjkxNik7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9kNTM2OTYxNzQ3MGE0Y2Q1YWE5MmM4ODkzMTM5MWZhMCA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA1NTcxMjM0NDk3MjcxLDgwLjI1ODM0MzgzNjUxMTc4XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzA5NjExZjc3ODg1ODQ3YmZiZmQzNDNiMDVjZjU4ODZkID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sX2QzMzViYTc3ZGY3NDQ3ZWM5MzFjNWI1NjJiMDUzM2VhID0gJCgnPGRpdiBpZD0iaHRtbF9kMzM1YmE3N2RmNzQ0N2VjOTMxYzViNTYyYjA1MzNlYSIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+U2F0aHlhbSBFbGl0ZTwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfMDk2MTFmNzc4ODU4NDdiZmJmZDM0M2IwNWNmNTg4NmQuc2V0Q29udGVudChodG1sX2QzMzViYTc3ZGY3NDQ3ZWM5MzFjNWI1NjJiMDUzM2VhKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2Q1MzY5NjE3NDcwYTRjZDVhYTkyYzg4OTMxMzkxZmEwLmJpbmRQb3B1cChwb3B1cF8wOTYxMWY3Nzg4NTg0N2JmYmZkMzQzYjA1Y2Y1ODg2ZCk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9lY2M2NDUyMjgzOGY0NjFiYmRmN2M0ZTJmZTJlMTk3ZCA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA1NTYyNjA0NTQ2ODEzMyw4MC4yNTgwMzczNDI5MTUzM10sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF9hZDc4Mjg2MDZlMjc0MWY4ODgwNTk0YzE2MmRiNjU2OSA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF8wNTViNDZlMTAyYWU0YjQ2OWJiNjQxZmY0Nzc5MDBkMCA9ICQoJzxkaXYgaWQ9Imh0bWxfMDU1YjQ2ZTEwMmFlNGI0NjliYjY0MWZmNDc3OTAwZDAiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPlN0dWRpbyA1PC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF9hZDc4Mjg2MDZlMjc0MWY4ODgwNTk0YzE2MmRiNjU2OS5zZXRDb250ZW50KGh0bWxfMDU1YjQ2ZTEwMmFlNGI0NjliYjY0MWZmNDc3OTAwZDApOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfZWNjNjQ1MjI4MzhmNDYxYmJkZjdjNGUyZmUyZTE5N2QuYmluZFBvcHVwKHBvcHVwX2FkNzgyODYwNmUyNzQxZjg4ODA1OTRjMTYyZGI2NTY5KTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyX2VmN2YzNzU4OWMxZjQ3OWI4YjVmM2NlZGRhODY5YzRjID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTMuMDU1NDcyMTc4MTQwNDY4LDgwLjI1NzkyNzU0OTk1MTYyXSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzU5Mjc1ZDFjZGY5MDQ3MWY4ZmYyNTNkZDAwZDg2YWE0ID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sXzg2ZDViZjFjZjEyODQzYjE4NThiNjZmNWM3Y2JjOWU1ID0gJCgnPGRpdiBpZD0iaHRtbF84NmQ1YmYxY2YxMjg0M2IxODU4YjY2ZjVjN2NiYzllNSIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+U3R1ZGlvIDU8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwXzU5Mjc1ZDFjZGY5MDQ3MWY4ZmYyNTNkZDAwZDg2YWE0LnNldENvbnRlbnQoaHRtbF84NmQ1YmYxY2YxMjg0M2IxODU4YjY2ZjVjN2NiYzllNSk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl9lZjdmMzc1ODljMWY0NzliOGI1ZjNjZWRkYTg2OWM0Yy5iaW5kUG9wdXAocG9wdXBfNTkyNzVkMWNkZjkwNDcxZjhmZjI1M2RkMDBkODZhYTQpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfZjdmZDRmMTA3YTkxNGZhZjhmM2FhMTkzNmUwMmRiZjggPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMi45OTEwNDE0NTQxMjE2OTQsODAuMjE2OTYxOTAyNzc0OTVdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfZjc0NTNhNzNlNWFiNDAwM2I0NmJlMzY4YjAzOThkOGYgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfMjRlMWQ4MWFiODJiNDVhZDg2OGI4MzEyNmYzNzMyYzggPSAkKCc8ZGl2IGlkPSJodG1sXzI0ZTFkODFhYjgyYjQ1YWQ4NjhiODMxMjZmMzczMmM4IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5MdXhlIENpbmVtYXM8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2Y3NDUzYTczZTVhYjQwMDNiNDZiZTM2OGIwMzk4ZDhmLnNldENvbnRlbnQoaHRtbF8yNGUxZDgxYWI4MmI0NWFkODY4YjgzMTI2ZjM3MzJjOCk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl9mN2ZkNGYxMDdhOTE0ZmFmOGYzYWExOTM2ZTAyZGJmOC5iaW5kUG9wdXAocG9wdXBfZjc0NTNhNzNlNWFiNDAwM2I0NmJlMzY4YjAzOThkOGYpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfZmU5MjMyMDRkNzY4NGM1YzlkODg5NTFlYzgzYjI0MTggPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wNTQ3NTY5OTQ5MDQ0NCw4MC4yMzk1ODEyNjM5MTcyMl0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF8zZTljNjEyMTFiNDE0Nzk0YjUyZWM3ZjQ3MDRhM2YxNCA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF9kM2Q4ZTZkOGZiODQ0ODBiOTE5NDliNGM4NjNmZTEyMCA9ICQoJzxkaXYgaWQ9Imh0bWxfZDNkOGU2ZDhmYjg0NDgwYjkxOTQ5YjRjODYzZmUxMjAiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPkZvdXIgRnJhbWVzIFByZXZpZXcgVGhlYXRyZTwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfM2U5YzYxMjExYjQxNDc5NGI1MmVjN2Y0NzA0YTNmMTQuc2V0Q29udGVudChodG1sX2QzZDhlNmQ4ZmI4NDQ4MGI5MTk0OWI0Yzg2M2ZlMTIwKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2ZlOTIzMjA0ZDc2ODRjNWM5ZDg4OTUxZWM4M2IyNDE4LmJpbmRQb3B1cChwb3B1cF8zZTljNjEyMTFiNDE0Nzk0YjUyZWM3ZjQ3MDRhM2YxNCk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9iMWQyZjdkNTQ4MGQ0YzBkYjA1NTM4ODg5MmMwN2MxYSA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEyLjk3NDExMzQyOTkwMTA0Nyw4MC4yNTU5NDU4MDc3Nzk5Ml0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF82ZTBiMWVmMjkzYjg0MmE4OTQzYjM0ZjQwYmIzNzUxMSA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF8xNWJjMzFiNzA5MDY0NTZjYmZmOWMyMmQxOWY3YjQ3ZCA9ICQoJzxkaXYgaWQ9Imh0bWxfMTViYzMxYjcwOTA2NDU2Y2JmZjljMjJkMTlmN2I0N2QiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPlNjcmVlbiAyIEAgUzIgQ2luZW1hczwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfNmUwYjFlZjI5M2I4NDJhODk0M2IzNGY0MGJiMzc1MTEuc2V0Q29udGVudChodG1sXzE1YmMzMWI3MDkwNjQ1NmNiZmY5YzIyZDE5ZjdiNDdkKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2IxZDJmN2Q1NDgwZDRjMGRiMDU1Mzg4ODkyYzA3YzFhLmJpbmRQb3B1cChwb3B1cF82ZTBiMWVmMjkzYjg0MmE4OTQzYjM0ZjQwYmIzNzUxMSk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl82ZmI5YzgxYWQ5MjE0YmM3YTEwZWUyODYzODIxMWExYyA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA3ODc2OTcwMzA1MTE0NCw4MC4yNDkzNTIzNzA2Njg2XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzkyYjNjOTg1NzA2YjRhYjJhMzRkYjNkNzFmY2EzZWM5ID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sX2ExYWIwY2Y2NTNhYjRmNGM5NzcyZWI5NmUyNzg2MTAzID0gJCgnPGRpdiBpZD0iaHRtbF9hMWFiMGNmNjUzYWI0ZjRjOTc3MmViOTZlMjc4NjEwMyIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+U2FuZ2FtIENpbmVtYXM8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwXzkyYjNjOTg1NzA2YjRhYjJhMzRkYjNkNzFmY2EzZWM5LnNldENvbnRlbnQoaHRtbF9hMWFiMGNmNjUzYWI0ZjRjOTc3MmViOTZlMjc4NjEwMyk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl82ZmI5YzgxYWQ5MjE0YmM3YTEwZWUyODYzODIxMWExYy5iaW5kUG9wdXAocG9wdXBfOTJiM2M5ODU3MDZiNGFiMmEzNGRiM2Q3MWZjYTNlYzkpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfMTBmMzc5NWFiMDk3NGM1ZjhiZGJkZDQxOWNmOWRiNTUgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wNjYzMjQ4OTg5Njg2ODgsODAuMjcwMzk3ODAwODEwMjldLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfNTg2NjUwMDRlMTY5NDJjYmJkMTE5YzY1NDg1MzM5YTEgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfOTViMDQxM2YwZjMyNDQ1ODg2MDZlZGUxY2NiNzZkMDYgPSAkKCc8ZGl2IGlkPSJodG1sXzk1YjA0MTNmMGYzMjQ0NTg4NjA2ZWRlMWNjYjc2ZDA2IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5EZXZpIENpbmVwbGV4PC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF81ODY2NTAwNGUxNjk0MmNiYmQxMTljNjU0ODUzMzlhMS5zZXRDb250ZW50KGh0bWxfOTViMDQxM2YwZjMyNDQ1ODg2MDZlZGUxY2NiNzZkMDYpOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfMTBmMzc5NWFiMDk3NGM1ZjhiZGJkZDQxOWNmOWRiNTUuYmluZFBvcHVwKHBvcHVwXzU4NjY1MDA0ZTE2OTQyY2JiZDExOWM2NTQ4NTMzOWExKTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyXzBlNWM0MTczZGZhZTRjYzg4OTc4NjIxZDNhZjY3N2ZhID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTIuOTkwNjM5MDE5ODU5NzA4LDgwLjIxNjMxMDM1MTgzODg5XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzVjYmU0NDcwMjlhODRmYjViNWVkOGU3YmQwMjc3MTJlID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sXzJjY2ZiM2VhMGY3NjQyNzY5NWNlMjI4NTM3ZTc5YmEzID0gJCgnPGRpdiBpZD0iaHRtbF8yY2NmYjNlYTBmNzY0Mjc2OTVjZTIyODUzN2U3OWJhMyIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+SU1BWMKuPC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF81Y2JlNDQ3MDI5YTg0ZmI1YjVlZDhlN2JkMDI3NzEyZS5zZXRDb250ZW50KGh0bWxfMmNjZmIzZWEwZjc2NDI3Njk1Y2UyMjg1MzdlNzliYTMpOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfMGU1YzQxNzNkZmFlNGNjODg5Nzg2MjFkM2FmNjc3ZmEuYmluZFBvcHVwKHBvcHVwXzVjYmU0NDcwMjlhODRmYjViNWVkOGU3YmQwMjc3MTJlKTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyXzE4YzUyMGU1ODc3MDRkMjJiZGE3NDg2YzdlNjExMGMzID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTMuMTEyMzEyODM3NDQyNTMsODAuMjM2NTI0MjgxMDkyNzNdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfODg2NTA0NjIyYmVhNGJmNWI4ZDRlNWMxNmI3MDhiODMgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfMjMyM2FlYjFhNjA4NDAyM2FiYzJhYjA5MmU4ZjZmZTYgPSAkKCc8ZGl2IGlkPSJodG1sXzIzMjNhZWIxYTYwODQwMjNhYmMyYWIwOTJlOGY2ZmU2IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5TMiBDaW5lbWFzPC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF84ODY1MDQ2MjJiZWE0YmY1YjhkNGU1YzE2YjcwOGI4My5zZXRDb250ZW50KGh0bWxfMjMyM2FlYjFhNjA4NDAyM2FiYzJhYjA5MmU4ZjZmZTYpOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfMThjNTIwZTU4NzcwNGQyMmJkYTc0ODZjN2U2MTEwYzMuYmluZFBvcHVwKHBvcHVwXzg4NjUwNDYyMmJlYTRiZjViOGQ0ZTVjMTZiNzA4YjgzKTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyX2ZmMzMyZDJlNjMyODQ5MTE4MWQxNmEwMjVjNzA0NmJiID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTMuMDU2NjQ2NzAwNjQ4MDgsODAuMjY1MDk0NzAzMzQ2MzZdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfNjlmMTkzYTA0MzE2NDhlNTk3MjNiNDc2NWUyYjFhN2QgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfOTA1ZjAwMTk4OGU0NDEyNGFjY2ExMzUyYWFkNDA4NTcgPSAkKCc8ZGl2IGlkPSJodG1sXzkwNWYwMDE5ODhlNDQxMjRhY2NhMTM1MmFhZDQwODU3IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5Xb29kbGFuZHMgVGhlYXRlcjwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfNjlmMTkzYTA0MzE2NDhlNTk3MjNiNDc2NWUyYjFhN2Quc2V0Q29udGVudChodG1sXzkwNWYwMDE5ODhlNDQxMjRhY2NhMTM1MmFhZDQwODU3KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2ZmMzMyZDJlNjMyODQ5MTE4MWQxNmEwMjVjNzA0NmJiLmJpbmRQb3B1cChwb3B1cF82OWYxOTNhMDQzMTY0OGU1OTcyM2I0NzY1ZTJiMWE3ZCk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl85ZTdiNjIyNzY4ZTA0MzVjYjcxY2E5YWU1ODM2MzVjNyA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEyLjk4OTY2MDE0OTk3MjM1Miw4MC4yNTYwMzY2NDA5MjkwNV0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF9jMGI4MGY4MGU4ZDI0ZGQ2YmNjNDdiZjljNTg1ZGFkOCA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF9hNmFkODMzOTIwNDA0ZTAzODEwYjMxMjJjZDNiMDlmNyA9ICQoJzxkaXYgaWQ9Imh0bWxfYTZhZDgzMzkyMDQwNGUwMzgxMGIzMTIyY2QzYjA5ZjciIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPlMyIENpbmVtYXM8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2MwYjgwZjgwZThkMjRkZDZiY2M0N2JmOWM1ODVkYWQ4LnNldENvbnRlbnQoaHRtbF9hNmFkODMzOTIwNDA0ZTAzODEwYjMxMjJjZDNiMDlmNyk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl85ZTdiNjIyNzY4ZTA0MzVjYjcxY2E5YWU1ODM2MzVjNy5iaW5kUG9wdXAocG9wdXBfYzBiODBmODBlOGQyNGRkNmJjYzQ3YmY5YzU4NWRhZDgpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfYjIyN2I1ZDk0ZTQ4NGNkNzkyMDQzYmU2YTJkMzgyYmQgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wODU5MDAyMDk0ODkwODQsODAuMjQ4MTU4NTMyMDYzMDldLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfYzZlZDM5MTM2OTI2NDZkMWEzMzQzNjBkYjA2ZTU1YzQgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfNGQ2YWMwYTlhMzM1NDFiODgxYzg3ZDVmNjc4YjQzMDkgPSAkKCc8ZGl2IGlkPSJodG1sXzRkNmFjMGE5YTMzNTQxYjg4MWM4N2Q1ZjY3OGI0MzA5IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5BYmlyYW1pIE1lZ2EgTWFsbDwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfYzZlZDM5MTM2OTI2NDZkMWEzMzQzNjBkYjA2ZTU1YzQuc2V0Q29udGVudChodG1sXzRkNmFjMGE5YTMzNTQxYjg4MWM4N2Q1ZjY3OGI0MzA5KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2IyMjdiNWQ5NGU0ODRjZDc5MjA0M2JlNmEyZDM4MmJkLmJpbmRQb3B1cChwb3B1cF9jNmVkMzkxMzY5MjY0NmQxYTMzNDM2MGRiMDZlNTVjNCk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl80OGZjZGI3MmZlNTg0MjdhOGQxY2RjZmYxODE1ZDM4YyA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA3NzM3MzY4NTE1NzEzNCw4MC4yNDA1MTQ5NDU4MDQwNF0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF9jOTg4ZGQ5ZjVmNGI0NDczYjliZWUwZjhjOTljMTYxOSA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF9lYzMwM2UxZGMzODg0NjcxOGM0YzY1M2NlZDlkMTM2MCA9ICQoJzxkaXYgaWQ9Imh0bWxfZWMzMDNlMWRjMzg4NDY3MThjNGM2NTNjZWQ5ZDEzNjAiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPkVHQSBDaW5lbWFzPC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF9jOTg4ZGQ5ZjVmNGI0NDczYjliZWUwZjhjOTljMTYxOS5zZXRDb250ZW50KGh0bWxfZWMzMDNlMWRjMzg4NDY3MThjNGM2NTNjZWQ5ZDEzNjApOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfNDhmY2RiNzJmZTU4NDI3YThkMWNkY2ZmMTgxNWQzOGMuYmluZFBvcHVwKHBvcHVwX2M5ODhkZDlmNWY0YjQ0NzNiOWJlZTBmOGM5OWMxNjE5KTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyXzYxZGFiZDQ4N2Q2NDQ4Yjg5NTM1YzUwMzY3YTUxNjY1ID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTMuMDQ2NzM2Mjk3ODczNjEzLDgwLjIwNDg5ODQxMTUxMjkxXSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzBkNDQwN2VhMzdlYjRiMDFiNDA5NGRhMjM5NDRjZDI1ID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sX2E5MDVhOWEyNjBiMTQ3Y2E4MDg5NjU3MmIyZGRiYWNjID0gJCgnPGRpdiBpZD0iaHRtbF9hOTA1YTlhMjYwYjE0N2NhODA4OTY1NzJiMmRkYmFjYyIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+QXZtIFJhamVzd2FyaTwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfMGQ0NDA3ZWEzN2ViNGIwMWI0MDk0ZGEyMzk0NGNkMjUuc2V0Q29udGVudChodG1sX2E5MDVhOWEyNjBiMTQ3Y2E4MDg5NjU3MmIyZGRiYWNjKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyXzYxZGFiZDQ4N2Q2NDQ4Yjg5NTM1YzUwMzY3YTUxNjY1LmJpbmRQb3B1cChwb3B1cF8wZDQ0MDdlYTM3ZWI0YjAxYjQwOTRkYTIzOTQ0Y2QyNSk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9kY2E0YTRhMzhhMjk0N2Q0ODYxMWJmZjdkZDY3ODBiNiA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjExNjA5MzY1OTM5OTI1LDgwLjI5MzE5MTMzMzczNzQ0XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwX2VjMDQ4OTk3NzM5MjQ0YzFhMjA1YTYxYTUyMDE2NzNlID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sX2FlNGZiZTc5YTBmOTRmMTA4YTQwYzZhMzk5MjgwMWU5ID0gJCgnPGRpdiBpZD0iaHRtbF9hZTRmYmU3OWEwZjk0ZjEwOGE0MGM2YTM5OTI4MDFlOSIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+SURSRUFNIFRoZWF0ZXI8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2VjMDQ4OTk3NzM5MjQ0YzFhMjA1YTYxYTUyMDE2NzNlLnNldENvbnRlbnQoaHRtbF9hZTRmYmU3OWEwZjk0ZjEwOGE0MGM2YTM5OTI4MDFlOSk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl9kY2E0YTRhMzhhMjk0N2Q0ODYxMWJmZjdkZDY3ODBiNi5iaW5kUG9wdXAocG9wdXBfZWMwNDg5OTc3MzkyNDRjMWEyMDVhNjFhNTIwMTY3M2UpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfMjRjMzY0MDg2Y2E4NGE1ZGFiZjZkNTkxOTlmZDAxZWIgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wMTk0OTk3MDY3Njg4MTQsODAuMjIzMTUzMjM1NjI0MjRdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfYzZlMzAzMWNjMzMyNDc3NWJhMGQ4YmI3MWM0ZmUxMTEgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfOTQ5MmM0MWU5YjAwNDMwMzhlZmM2OTFiYzQyZDM5NWEgPSAkKCc8ZGl2IGlkPSJodG1sXzk0OTJjNDFlOWIwMDQzMDM4ZWZjNjkxYmM0MmQzOTVhIiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5SYWogVGhlYXRlciw8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2M2ZTMwMzFjYzMzMjQ3NzViYTBkOGJiNzFjNGZlMTExLnNldENvbnRlbnQoaHRtbF85NDkyYzQxZTliMDA0MzAzOGVmYzY5MWJjNDJkMzk1YSk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl8yNGMzNjQwODZjYTg0YTVkYWJmNmQ1OTE5OWZkMDFlYi5iaW5kUG9wdXAocG9wdXBfYzZlMzAzMWNjMzMyNDc3NWJhMGQ4YmI3MWM0ZmUxMTEpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfZmU1ZDljNDFjODE1NDcxOWI5OGY4ZWI3Yzg5MTFlZjMgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMi45ODk2MzQsODAuMjU2MTg2XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzNjY2IwNDJkMTMwOTQwOWE5YTA4N2U1OGMxOTc4NThkID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sXzI2MDIyZjU0MzkzZjQzZTNiYjFhNmY0NzUwZDYxYjlkID0gJCgnPGRpdiBpZD0iaHRtbF8yNjAyMmY1NDM5M2Y0M2UzYmIxYTZmNDc1MGQ2MWI5ZCIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+U2NyZWVuIDEgQCBTMiBUaGV5YWdhcmFqYTwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfM2NjYjA0MmQxMzA5NDA5YTlhMDg3ZTU4YzE5Nzg1OGQuc2V0Q29udGVudChodG1sXzI2MDIyZjU0MzkzZjQzZTNiYjFhNmY0NzUwZDYxYjlkKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2ZlNWQ5YzQxYzgxNTQ3MTliOThmOGViN2M4OTExZWYzLmJpbmRQb3B1cChwb3B1cF8zY2NiMDQyZDEzMDk0MDlhOWEwODdlNThjMTk3ODU4ZCk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl9hMDk3NDdjOWY4NDE0ZmU2ODA4ODc5OTEwMDRmMzY3MiA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA4MjM0ODgyMDM1NTYxMiw4MC4yMTc5NzM0NDQxODg5XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwXzI5MDA4NGNlNjY3ODRkNzRhOWE1YTIwOWI3ZDUyYWE5ID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sXzUyYTRlNDQxYzMwMjRkZTk5MDJhZGIwMzkyNGMyYjMyID0gJCgnPGRpdiBpZD0iaHRtbF81MmE0ZTQ0MWMzMDI0ZGU5OTAyYWRiMDM5MjRjMmIzMiIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+TW92aWUgQ2x1YjwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfMjkwMDg0Y2U2Njc4NGQ3NGE5YTVhMjA5YjdkNTJhYTkuc2V0Q29udGVudChodG1sXzUyYTRlNDQxYzMwMjRkZTk5MDJhZGIwMzkyNGMyYjMyKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2EwOTc0N2M5Zjg0MTRmZTY4MDg4Nzk5MTAwNGYzNjcyLmJpbmRQb3B1cChwb3B1cF8yOTAwODRjZTY2Nzg0ZDc0YTlhNWEyMDliN2Q1MmFhOSk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl85MWI1ZjRkZmE0YjM0ZWJjOWNhYTljNTVjODQ3MGY4MSA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjA1MDQyOTc2MDQ1NzAzLDgwLjIwOTUxOTUyMTgyMThdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfYWE5Y2MzN2E0NmViNGYwZWJlNThkZGNmZjgyNTk4NjMgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfZGFiMzYxYjlkNzg4NDE0MjhmYjkyY2YzZDFiZGZmNmIgPSAkKCc8ZGl2IGlkPSJodG1sX2RhYjM2MWI5ZDc4ODQxNDI4ZmI5MmNmM2QxYmRmZjZiIiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5TY3JlZW4gNiBAIFBhbGF6em88L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2FhOWNjMzdhNDZlYjRmMGViZTU4ZGRjZmY4MjU5ODYzLnNldENvbnRlbnQoaHRtbF9kYWIzNjFiOWQ3ODg0MTQyOGZiOTJjZjNkMWJkZmY2Yik7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl85MWI1ZjRkZmE0YjM0ZWJjOWNhYTljNTVjODQ3MGY4MS5iaW5kUG9wdXAocG9wdXBfYWE5Y2MzN2E0NmViNGYwZWJlNThkZGNmZjgyNTk4NjMpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfNGJiMjIyM2VlYzI4NDhhMGEwNDhhNDU2YWEyYmMxNTQgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wMzEyNzk1MTQxNjIwMDcsODAuMjA5ODk1MzkwNThdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfOTQwZGJkYWQ5Mjg2NDI4Yjk5OGJiY2IzOWU3ZTUzMjcgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfODhkYzVkNTNhM2YxNDE5ZWEwZDE1YTI3NWY4MjFkYTMgPSAkKCc8ZGl2IGlkPSJodG1sXzg4ZGM1ZDUzYTNmMTQxOWVhMGQxNWEyNzVmODIxZGEzIiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5VZGhheWFtIFRoZWF0ZXI8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwXzk0MGRiZGFkOTI4NjQyOGI5OThiYmNiMzllN2U1MzI3LnNldENvbnRlbnQoaHRtbF84OGRjNWQ1M2EzZjE0MTllYTBkMTVhMjc1ZjgyMWRhMyk7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl80YmIyMjIzZWVjMjg0OGEwYTA0OGE0NTZhYTJiYzE1NC5iaW5kUG9wdXAocG9wdXBfOTQwZGJkYWQ5Mjg2NDI4Yjk5OGJiY2IzOWU3ZTUzMjcpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfNWI2NWZmYTg5NDI2NDFjZTllNmVkNjRmNGQ1ZTYxYjkgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wMDM2NjQyOTg1NjcxMjIsODAuMjU2Njc1MzQ3MTM1MzRdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfMTAyOWRkZjc3YjgwNDlhYmFkYThhMzk0MjQ2MmFjYTAgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfZGY4ZDQzYTZlYmQ0NDllNTg4Zjk4MWJkYzU3NDJmYjMgPSAkKCc8ZGl2IGlkPSJodG1sX2RmOGQ0M2E2ZWJkNDQ5ZTU4OGY5ODFiZGM1NzQyZmIzIiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5HYW5hcGF0aHlyYW0gQS9DIER0czwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfMTAyOWRkZjc3YjgwNDlhYmFkYThhMzk0MjQ2MmFjYTAuc2V0Q29udGVudChodG1sX2RmOGQ0M2E2ZWJkNDQ5ZTU4OGY5ODFiZGM1NzQyZmIzKTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyXzViNjVmZmE4OTQyNjQxY2U5ZTZlZDY0ZjRkNWU2MWI5LmJpbmRQb3B1cChwb3B1cF8xMDI5ZGRmNzdiODA0OWFiYWRhOGEzOTQyNDYyYWNhMCk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl8wYjhiZjI0YmM2MDg0ZjQ3OGEzM2RiY2NmNDA1MmI0MyA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjExNDA3NjUyMDgwNTYwMiw4MC4yMzYxMDQwNTY5MzU1XSwKICAgICAgICAgICAgICAgIHsKICAiYnViYmxpbmdNb3VzZUV2ZW50cyI6IHRydWUsCiAgImNvbG9yIjogImJsdWUiLAogICJkYXNoQXJyYXkiOiBudWxsLAogICJkYXNoT2Zmc2V0IjogbnVsbCwKICAiZmlsbCI6IHRydWUsCiAgImZpbGxDb2xvciI6ICIjMzE4NmNjIiwKICAiZmlsbE9wYWNpdHkiOiAwLjcsCiAgImZpbGxSdWxlIjogImV2ZW5vZGQiLAogICJsaW5lQ2FwIjogInJvdW5kIiwKICAibGluZUpvaW4iOiAicm91bmQiLAogICJvcGFjaXR5IjogMS4wLAogICJyYWRpdXMiOiA1LAogICJzdHJva2UiOiB0cnVlLAogICJ3ZWlnaHQiOiAzCn0KICAgICAgICAgICAgICAgICkuYWRkVG8obWFwXzVjMTI2YjA4NDBlOTQxZTJhYTczMTczMmZlMGI0Y2I3KTsKICAgICAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIHBvcHVwX2Y5NGM4OTc5MmNkNzQzODE5YmM1OWNlYWE3MjQ5MGEwID0gTC5wb3B1cCh7bWF4V2lkdGg6ICczMDAnfSk7CgogICAgICAgICAgICAKICAgICAgICAgICAgICAgIHZhciBodG1sX2ZhNDk4OTIzZjQ1NTQ1ODBiMGJiNzUzYzM4MjNiMDdmID0gJCgnPGRpdiBpZD0iaHRtbF9mYTQ5ODkyM2Y0NTU0NTgwYjBiYjc1M2MzODIzYjA3ZiIgc3R5bGU9IndpZHRoOiAxMDAuMCU7IGhlaWdodDogMTAwLjAlOyI+U2NyZWVuIDQ8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwX2Y5NGM4OTc5MmNkNzQzODE5YmM1OWNlYWE3MjQ5MGEwLnNldENvbnRlbnQoaHRtbF9mYTQ5ODkyM2Y0NTU0NTgwYjBiYjc1M2MzODIzYjA3Zik7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl8wYjhiZjI0YmM2MDg0ZjQ3OGEzM2RiY2NmNDA1MmI0My5iaW5kUG9wdXAocG9wdXBfZjk0Yzg5NzkyY2Q3NDM4MTliYzU5Y2VhYTcyNDkwYTApOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfYTVlZDcwZDNkYjVlNGY3YWJlNjhkMGU5OTVkYWVlY2MgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wMjE0NzExOTA4NDU3MTQsODAuMjA4ODAwNDYzOTIzNzFdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfNWVkOTdhZjQ2NzAzNGJlZjkzMzg1YzRlNWRkMDc5ZGYgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfNTdhMDAwNDkxM2RmNDVmN2FlZmM5ZjNkZjFjOGRiMjYgPSAkKCc8ZGl2IGlkPSJodG1sXzU3YTAwMDQ5MTNkZjQ1ZjdhZWZjOWYzZGYxYzhkYjI2IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5LYXNpIFRoZWF0cmU8L2Rpdj4nKVswXTsKICAgICAgICAgICAgICAgIHBvcHVwXzVlZDk3YWY0NjcwMzRiZWY5MzM4NWM0ZTVkZDA3OWRmLnNldENvbnRlbnQoaHRtbF81N2EwMDA0OTEzZGY0NWY3YWVmYzlmM2RmMWM4ZGIyNik7CiAgICAgICAgICAgIAoKICAgICAgICAgICAgY2lyY2xlX21hcmtlcl9hNWVkNzBkM2RiNWU0ZjdhYmU2OGQwZTk5NWRhZWVjYy5iaW5kUG9wdXAocG9wdXBfNWVkOTdhZjQ2NzAzNGJlZjkzMzg1YzRlNWRkMDc5ZGYpOwoKICAgICAgICAgICAgCiAgICAgICAgCiAgICAKICAgICAgICAgICAgdmFyIGNpcmNsZV9tYXJrZXJfZTdmYTY4OTQ3ZTQzNDhiZWI0Y2I5NTIwMDRjODQyODAgPSBMLmNpcmNsZU1hcmtlcigKICAgICAgICAgICAgICAgIFsxMy4wNzM3NTExODA4MzU4NTQsODAuMjAzNzAxNTE1NjM3MTZdLAogICAgICAgICAgICAgICAgewogICJidWJibGluZ01vdXNlRXZlbnRzIjogdHJ1ZSwKICAiY29sb3IiOiAiYmx1ZSIsCiAgImRhc2hBcnJheSI6IG51bGwsCiAgImRhc2hPZmZzZXQiOiBudWxsLAogICJmaWxsIjogdHJ1ZSwKICAiZmlsbENvbG9yIjogIiMzMTg2Y2MiLAogICJmaWxsT3BhY2l0eSI6IDAuNywKICAiZmlsbFJ1bGUiOiAiZXZlbm9kZCIsCiAgImxpbmVDYXAiOiAicm91bmQiLAogICJsaW5lSm9pbiI6ICJyb3VuZCIsCiAgIm9wYWNpdHkiOiAxLjAsCiAgInJhZGl1cyI6IDUsCiAgInN0cm9rZSI6IHRydWUsCiAgIndlaWdodCI6IDMKfQogICAgICAgICAgICAgICAgKS5hZGRUbyhtYXBfNWMxMjZiMDg0MGU5NDFlMmFhNzMxNzMyZmUwYjRjYjcpOwogICAgICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgcG9wdXBfNzlkMTY5OWIxNGQ0NDgzNmJlODdlZDg5ZDg0NDE5ZWMgPSBMLnBvcHVwKHttYXhXaWR0aDogJzMwMCd9KTsKCiAgICAgICAgICAgIAogICAgICAgICAgICAgICAgdmFyIGh0bWxfMDY5MzY5ODMxMzczNDUwY2IwYWI0NzdkNjJiODY0MTQgPSAkKCc8ZGl2IGlkPSJodG1sXzA2OTM2OTgzMTM3MzQ1MGNiMGFiNDc3ZDYyYjg2NDE0IiBzdHlsZT0id2lkdGg6IDEwMC4wJTsgaGVpZ2h0OiAxMDAuMCU7Ij5BVURJIDQgLSBQVlIgQ2luZW1hczwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfNzlkMTY5OWIxNGQ0NDgzNmJlODdlZDg5ZDg0NDE5ZWMuc2V0Q29udGVudChodG1sXzA2OTM2OTgzMTM3MzQ1MGNiMGFiNDc3ZDYyYjg2NDE0KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyX2U3ZmE2ODk0N2U0MzQ4YmViNGNiOTUyMDA0Yzg0MjgwLmJpbmRQb3B1cChwb3B1cF83OWQxNjk5YjE0ZDQ0ODM2YmU4N2VkODlkODQ0MTllYyk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl85YmYwYzZkNzIwZjY0ZDk5ODc3NmI0MGEzNWQ4YjNiZiA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEzLjAzNDM4MjE4MjMxMzYwMyw4MC4yMTA1OTU3NjI2ODQ3M10sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF80NDBiYmY4NmNjODM0YWVhYTI4MDdhYzJmZGY5YjlhNyA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF8wZTUxMTY4ZmM0Njg0YjI1OGU4MTY3YzA5NTcxM2NlNyA9ICQoJzxkaXYgaWQ9Imh0bWxfMGU1MTE2OGZjNDY4NGIyNThlODE2N2MwOTU3MTNjZTciIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPlVkaGF5YW0gVGhlYXRyZTwvZGl2PicpWzBdOwogICAgICAgICAgICAgICAgcG9wdXBfNDQwYmJmODZjYzgzNGFlYWEyODA3YWMyZmRmOWI5YTcuc2V0Q29udGVudChodG1sXzBlNTExNjhmYzQ2ODRiMjU4ZTgxNjdjMDk1NzEzY2U3KTsKICAgICAgICAgICAgCgogICAgICAgICAgICBjaXJjbGVfbWFya2VyXzliZjBjNmQ3MjBmNjRkOTk4Nzc2YjQwYTM1ZDhiM2JmLmJpbmRQb3B1cChwb3B1cF80NDBiYmY4NmNjODM0YWVhYTI4MDdhYzJmZGY5YjlhNyk7CgogICAgICAgICAgICAKICAgICAgICAKICAgIAogICAgICAgICAgICB2YXIgY2lyY2xlX21hcmtlcl83M2RkYjdlZWZmYmY0OGQ4OGFlNTM5MjFiZGU3NWJlMSA9IEwuY2lyY2xlTWFya2VyKAogICAgICAgICAgICAgICAgWzEyLjk4MjE5ODgyMTk4MDg2Niw4MC4yMjY5NDM5MjQxMjE1NF0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF8xNDZiMjg1YzIxZTM0ZjA0Yjk0ZWRjMDRkMWQ0MmRhMiA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF81MzU4OWZiZjA0OTE0MzllOWY2MDU5ZjI1NGViYTIwNiA9ICQoJzxkaXYgaWQ9Imh0bWxfNTM1ODlmYmYwNDkxNDM5ZTlmNjA1OWYyNTRlYmEyMDYiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPkFHUyBOYXZhbHVyPC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF8xNDZiMjg1YzIxZTM0ZjA0Yjk0ZWRjMDRkMWQ0MmRhMi5zZXRDb250ZW50KGh0bWxfNTM1ODlmYmYwNDkxNDM5ZTlmNjA1OWYyNTRlYmEyMDYpOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfNzNkZGI3ZWVmZmJmNDhkODhhZTUzOTIxYmRlNzViZTEuYmluZFBvcHVwKHBvcHVwXzE0NmIyODVjMjFlMzRmMDRiOTRlZGMwNGQxZDQyZGEyKTsKCiAgICAgICAgICAgIAogICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBjaXJjbGVfbWFya2VyXzM0NmI5Mjk5MGFlYTRiOWE4ODNlNTcwMDg4N2E0NzFkID0gTC5jaXJjbGVNYXJrZXIoCiAgICAgICAgICAgICAgICBbMTMuMTA0NzI0NzM0MjE5NzUsODAuMjA4OTMzNjA5MTMwOF0sCiAgICAgICAgICAgICAgICB7CiAgImJ1YmJsaW5nTW91c2VFdmVudHMiOiB0cnVlLAogICJjb2xvciI6ICJibHVlIiwKICAiZGFzaEFycmF5IjogbnVsbCwKICAiZGFzaE9mZnNldCI6IG51bGwsCiAgImZpbGwiOiB0cnVlLAogICJmaWxsQ29sb3IiOiAiIzMxODZjYyIsCiAgImZpbGxPcGFjaXR5IjogMC43LAogICJmaWxsUnVsZSI6ICJldmVub2RkIiwKICAibGluZUNhcCI6ICJyb3VuZCIsCiAgImxpbmVKb2luIjogInJvdW5kIiwKICAib3BhY2l0eSI6IDEuMCwKICAicmFkaXVzIjogNSwKICAic3Ryb2tlIjogdHJ1ZSwKICAid2VpZ2h0IjogMwp9CiAgICAgICAgICAgICAgICApLmFkZFRvKG1hcF81YzEyNmIwODQwZTk0MWUyYWE3MzE3MzJmZTBiNGNiNyk7CiAgICAgICAgICAgIAogICAgCiAgICAgICAgICAgIHZhciBwb3B1cF81NmMzZDQwYzcwMTk0NDM0OWFjZTdmN2I1ZmVlM2IwMyA9IEwucG9wdXAoe21heFdpZHRoOiAnMzAwJ30pOwoKICAgICAgICAgICAgCiAgICAgICAgICAgICAgICB2YXIgaHRtbF82ODY5ZTc4ODg5OTQ0YjhjODI5ZjhmMGFjNzM5NDg1ZSA9ICQoJzxkaXYgaWQ9Imh0bWxfNjg2OWU3ODg4OTk0NGI4YzgyOWY4ZjBhYzczOTQ4NWUiIHN0eWxlPSJ3aWR0aDogMTAwLjAlOyBoZWlnaHQ6IDEwMC4wJTsiPkFHUyBSb3lhbCBDaW5lbWFzPC9kaXY+JylbMF07CiAgICAgICAgICAgICAgICBwb3B1cF81NmMzZDQwYzcwMTk0NDM0OWFjZTdmN2I1ZmVlM2IwMy5zZXRDb250ZW50KGh0bWxfNjg2OWU3ODg4OTk0NGI4YzgyOWY4ZjBhYzczOTQ4NWUpOwogICAgICAgICAgICAKCiAgICAgICAgICAgIGNpcmNsZV9tYXJrZXJfMzQ2YjkyOTkwYWVhNGI5YTg4M2U1NzAwODg3YTQ3MWQuYmluZFBvcHVwKHBvcHVwXzU2YzNkNDBjNzAxOTQ0MzQ5YWNlN2Y3YjVmZWUzYjAzKTsKCiAgICAgICAgICAgIAogICAgICAgIAo8L3NjcmlwdD4=" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen webkitallowfullscreen mozallowfullscreen></iframe></div></div>
+
+
+
+#### 2. Geographic coordinates of 5 possible cinema addresses
+Geographic coordinates of 5 possible cinemas are required and I can use Google Map API to find this information
+
+
+```python
+# @hidden_cell
+gmaps = googlemaps.Client(key='AIzaSyAHBk95LetxuaaD8fmu3F9n16IRLMVPJJU')
+```
+
+
+```python
+# Retrieve geolocation and create the dataframe of possible cinema addresses
+def getLatLng(address):
+    latlnt = gmaps.geocode('{}, Chennai'.format(address))
+    return (latlnt[0]['geometry']['location']['lat'], latlnt[0]['geometry']['location']['lng'])
+
+possible_locations = [
+    { 'Options': 'Option1', 'Area': 'George Town, Chennai'},
+    { 'Options': 'Option2', 'Area': 'Anna Nagar, Chennai'},
+    { 'Options': 'Option3', 'Area': 'Nandanam, Chennai'},
+    { 'Options': 'Option4', 'Area': 'Nungambakkam, Chennai'},
+    { 'Options': 'Option5', 'Area': 'Saligramam, Chennai'},
+]
+
+for loc in possible_locations:   
+    (lat, lng) = getLatLng(loc['Area'])
+    loc['Latitude'] = lat
+    loc['Longitude'] = lng
+    
+df_possible_options = pd.DataFrame(possible_locations, columns=['Options', 'Area', 'Latitude', 'Longitude'])
+df_possible_options
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Options</th>
+      <th>Area</th>
+      <th>Latitude</th>
+      <th>Longitude</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Option1</td>
+      <td>George Town, Chennai</td>
+      <td>13.092316</td>
+      <td>80.282559</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Option2</td>
+      <td>Anna Nagar, Chennai</td>
+      <td>13.089136</td>
+      <td>80.209562</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Option3</td>
+      <td>Nandanam, Chennai</td>
+      <td>13.030105</td>
+      <td>80.241425</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Option4</td>
+      <td>Nungambakkam, Chennai</td>
+      <td>13.059537</td>
+      <td>80.242479</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Option5</td>
+      <td>Saligramam, Chennai</td>
+      <td>13.054605</td>
+      <td>80.199798</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+#### 3. Get the list of Populat Movie theatres
+
+By getting the ratings & tip counts for all th movie theatres, I can **use it as profile to select the best location**.
+
+
+```python
+# Getting the Theatres ratings & Tip counts to determine the top theatres
+
+appended_data=pd.DataFrame()
+for VID in nearby_venues.id:
+    VENUE_ID=VID
+    url_venue_details = 'https://api.foursquare.com/v2/venues/{}?client_id={}&client_secret={}&v={}'.format(VENUE_ID,CLIENT_ID, CLIENT_SECRET,  VERSION)
+    results_trending = requests.get(url_venue_details).json()
+    items = results_trending['response']['venue']
+    dataframe = json_normalize(items) # flatten JSON
+    # filter columns
+    filtered_columns = ['name', 'id','rating','tips.count']
+    dataframe_filtered = dataframe.loc[:, filtered_columns]
+# clean column names
+    dataframe_filtered.columns = [column.split('.')[0] for column in dataframe_filtered.columns]
+    appended_data=appended_data.append(dataframe_filtered,ignore_index=True)
+# see pd.concat documentation for more info
+
+appended_data
+```
+
+    https://api.foursquare.com/v2/venues/4c712b75f52cb71358fbb3af?client_id=4BHK2XBPCKFPKJLNJYU3EWIJTI1CV4F151OYTE5XXNQMBODF&client_secret=BL12WZBHZUM3PRRUSHWKGTTDSD400ZV5FYJ0IP20F3TZQHWF&v=20181105
+
+
+
+    ---------------------------------------------------------------------------
+
+    KeyError                                  Traceback (most recent call last)
+
+    <ipython-input-8-876bb0be3731> in <module>()
+          7     print(url_venue_details)
+          8     results_trending = requests.get(url_venue_details).json()
+    ----> 9     items = results_trending['response']['venue']
+         10     dataframe = json_normalize(items) # flatten JSON
+         11     # filter columns
+
+
+    KeyError: 'venue'
+
+
+Merging with original list
+
+
+```python
+theatres_merged=nearby_venues.merge(appended_data,on=['name','id'])
+theatres_merged.sort_values(by='tips',ascending=False,inplace=True)
+theatres_merged.reset_index(drop=True, inplace=True)
+theatres_merged.drop(columns=['categories','id'], inplace=True)
+theatres_merged.head()
+```
+
+
+```python
+top_theatres=theatres_merged[(theatres_merged['tips']>50) | (theatres_merged['rating']>7)]
+top_theatres.drop(columns=['address','lat','lng'], inplace=True)
+top_theatres.reset_index(inplace=True,drop=True)
+top_theatres
+```
+
+#### 4. Eating, Shopping and Public transportation facility around cinema
+The recommended cinema location needs to have many eating and shopping venues nearby. Convenient public transport is also required.  
+These data can be found by using FourSquare API to find these venues around the location. The radius of exploration distance is set to 1000 meters, which is about 10 minutes walking distance.
+
+Following type of venue category will be used to search
+
+
+```python
+fs_categories = {
+    'Restaurant',
+    'College',
+    'Bus Stop',
+    'Coffee',
+    'Juice',
+    'Food'
+}
+', '.join([ cat for cat in fs_categories])
+```
+
+
+```python
+cinema = theatres_merged.loc[0]
+print('Use the first cinema "{}" in the list as example to explore venues nearby'.format(cinema['name']))
+```
+
+
+```python
+RADIUS = 1000 #1000 Metres
+fs = foursquare.Foursquare(client_id='CLIENT_ID', client_secret='CLIENT_SECRET')
+
+# Define a function to search nearby information and convert the result as dataframe
+def venues_nearby(latitude, longitude, category, verbose=True):    
+    results = fs.venues.search(
+        params = {
+            'query': category, 
+            'll': '{},{}'.format(latitude, longitude),
+            'radius': RADIUS,
+        }
+    )    
+    df = json_normalize(results['venues'])
+    cols = ['Name','Latitude','Longitude']    
+    if( len(df) == 0 ):        
+        df = pd.DataFrame(columns=cols)
+    else:        
+        df = df[['name','location.lat','location.lng']]
+        df.columns = cols
+    if( verbose ):
+        print('{} "{}" venues are found within {}m of location'.format(len(df), category, RADIUS))
+    return df
+    
+```
+
+Find Restaurant around the cinema
+
+
+```python
+venues_nearby(cinema['lat'], cinema['lng'], 'Restaurant').head()
+```
+
+Find Bus Stop around the cinema
+
+
+```python
+venues_nearby(cinema['lat'], cinema['lng'], 'Bus Stop').head()
+```
+
+Find Colleges around the cinema
+
+
+```python
+venues_nearby(cinema['lat'], cinema['lng'], 'college').head()
+```
+
+Find Juice shops around the cinema
+
+
+```python
+venues_nearby(cinema['lat'], cinema['lng'], 'juice').head()
+```
+
+Find Coffee shops around the cinema
+
+
+```python
+venues_nearby(cinema['lat'], cinema['lng'], 'coffee').head()
+```
+
+## Methodology 
+
+Methodology section which represents the main component of the report where you discuss and d
+escribe any exploratory data analysis that you did, any inferential statistical testing that you performed, and what machine learnings were used and why.
+
+With above data, I can use content-based recommendation technique to resolve the problem.
+
+Combine with FourSquare API which provides how many venues in different category of Chennai theatres, a matrix which captured characteristic of venues nearby cinema are built. Popular theatres list is the profile to combine with the matrix to become a weighted matrix of favorite cinema.
+
+The weighted matrix can be applied on 5 target locations with venues information to generate a ranking result. The the top one on the ranking list can be recommended to the stakeholder.
+
+Before building the matrix, I have to prepare the required data and apply some data analysis.
+
+#### Data Cleansing and Preparation
+Check the cinemas dataset contains any duplicated address
+
+
+```python
+duplicated = theatres_merged.duplicated('address', keep=False)
+theatres_merged[duplicated].sort_values('address')
+```
+
+
+```python
+theatres_merged.drop_duplicates('address', inplace=True, keep='first')
+theatres_merged
+```
+
+Some cinemas are repated as a new cinema in  Foursquare.
+These records are duplicated in my case and should be corrected.
+
+
+```python
+# Sathyam Elite,Studio 5, satyam,Seasons -> Sathyam Cinemas
+theatres_merged.loc[18, 'name'] = 'Sathyam Cinemas'
+theatres_merged.loc[23, 'name'] = 'Sathyam Cinemas'
+theatres_merged.loc[33, 'name'] = 'Sathyam Cinemas'
+theatres_merged.loc[35, 'name'] = 'Sathyam Cinemas'
+
+# Screen 4 @ Inox, Screen 4 -> Inox Movies
+theatres_merged.loc[28, 'name'] = 'Inox Movies'
+theatres_merged.loc[29, 'name'] = 'Inox Movies'
+
+# Udhayam Theater -> Udhayam Theatre
+theatres_merged.loc[32, 'name'] = 'Udhayam Theatre'
+
+# Screen 6 @ Palazzo -> Palazzo
+theatres_merged.loc[30, 'name'] = 'Palazzo'
+
+
+# AUDI 4 - PVR Cinemas -> PVR
+theatres_merged.loc[25, 'name'] = 'PVR'
+
+# Devi theaters -> Devi Cineplex
+theatres_merged.loc[17, 'name'] = 'Devi Cineplex'
+```
+
+
+```python
+duplicated = theatres_merged.duplicated('name', keep=False)
+theatres_merged[duplicated].sort_values('name')
+```
+
+Drop the duplicated cinema records
+
+
+```python
+theatres_merged.drop_duplicates('name', inplace=True, keep='first')
+theatres_merged.reset_index(drop=True,inplace=True)
+theatres_merged
+```
+
+Check the shape of cinemas dataset
+
+
+```python
+theatres_merged.shape
+```
+
+Now I can use the FourSquare API to explore nearby venues of Chennai cinemas
+
+
+```python
+venues_csv = Path('./cinemas_venues.csv')
+df_venues = None
+
+# check the venues data is explored and downloaded 
+if( venues_csv.exists() ):
+    os.remove('./cinemas_venues.csv')   
+    
+# construct a dataframe to store data
+df_venues = pd.DataFrame(columns=['Cinema Name', 'Category', 'Name', 'Latitude', 'Longitude'])
+for (name,  address, lat, lng,rating,tips) in theatres_merged.itertuples(index=False):
+    for cat in fs_categories:
+        df = venues_nearby(lat, lng, cat, verbose=False)
+        df['Cinema Name'] = name
+        df['Category'] = cat
+        df_venues = df_venues.append(df)
+df_venues.to_csv('cinemas_venues.csv', index=False)
+```
+
+
+```python
+print('Total {} of venues are found'.format(len(df_venues)))
+```
+
+
+```python
+df_venues.shape
+```
+
+
+```python
+# check some data
+df_venues.head()
+```
+
+Number of venues in each category
+
+
+```python
+df_venues['Category'].value_counts().to_frame(name='Count')
+```
+
+
+```python
+df_target_venues = pd.DataFrame(columns=['Location', 'Category', 'Name', 'Latitude', 'Longitude'])
+for (location, area, latitude, longitude) in df_possible_locations.itertuples(index=False):
+    for cat in fs_categories:
+        df = venues_nearby(latitude, longitude, cat, verbose=False)
+        df['Location'] = location
+        df['Category'] = cat
+        df_target_venues = df_target_venues.append(df)
+```
+
+
+```python
+df_target_venues.head()
+```
+
+
+```python
+df_target_venues['Category'].value_counts().to_frame(name='Count')
+```
+
+
+```python
+df_target_venues.shape
+```
+
+I only interested in number of venues in each category of dataframe.
+
+
+```python
+df_venues_count = df_venues.groupby(['Cinema Name','Category'], as_index=False).count()
+df_venues_count.drop(columns=['Latitude','Longitude'], inplace=True)
+df_venues_count.rename(columns={'Name':'Count'}, inplace=True)
+df_venues_count.head()
+```
+
+
+```python
+df_venues_count = df_venues_count.pivot(index='Cinema Name', columns='Category', values='Count').fillna(0)
+df_venues_count.head()
+```
+
+Check the same for the possible locations
+
+
+```python
+# Do the same process on target locations
+df_target_venues_count = df_target_venues.groupby(['Location','Category']).size().reset_index(name='Count')
+df_target_venues_count = df_target_venues_count.pivot(index='Location', columns='Category', values='Count').fillna(0)
+```
+
+
+```python
+df_target_venues_count
+```
+
+#### Data Analysis
+Check the data type of variables
+
+
+```python
+df_venues_count.dtypes.to_frame(name='Data Type')
+```
+
+All datatype is numeric
+
+Generates descriptive statistics that summarize the central tendency,
+dispersion and shape of a dataset's distribution
+
+
+```python
+df_venues_count.describe()
+```
+
+Get the count of Bus stop
+
+
+```python
+df_venues_count['Bus Stop'].value_counts().sort_index().to_frame('Cinema Count')
+```
+
+
+```python
+df_venues_count[df_venues_count['Bus Stop'] > 10]
+```
+
+
+```python
+busstop_over_8 = df_venues_count[df_venues_count['Bus Stop'] > 2].index.tolist()
+df_venues[(df_venues['Cinema Name'].isin(busstop_over_8)) & (df_venues.Category == 'Bus Stop')]
+```
+
+Venue 'Thousand Light Mosque Bus Stop' & Vadapalani Bus Stand is duplicated and should be removed.
+
+
+```python
+df_venues = df_venues[df_venues.Name != 'Thousand Light Mosque Bus Stop']
+df_venues = df_venues[df_venues.Name != 'Vadapalani Bus Stand']
+
+```
+
+
+```python
+busstop_over_8 = df_venues_count[df_venues_count['Bus Stop'] > 2].index.tolist()
+df_venues[(df_venues['Cinema Name'].isin(busstop_over_8)) & (df_venues.Category == 'Bus Stop')]
+```
+
+Re-construct the dataframe again
+
+
+```python
+df_venues_count = df_venues.groupby(['Cinema Name','Category'], as_index=False).count()
+df_venues_count.drop(columns=['Latitude','Longitude'], inplace=True)
+df_venues_count.rename(columns={'Name':'Count'}, inplace=True)
+df_venues_count = df_venues_count.pivot(index='Cinema Name', columns='Category', values='Count').fillna(0)
+df_venues_count.head()
+```
+
+Plot the distribution of all the variables
+
+
+```python
+f, axes = plt.subplots(2,3, figsize=(15, 10))
+sns.distplot(df_venues_count['Restaurant'] , color="skyblue", ax=axes[0, 0], kde=False)
+sns.distplot(df_venues_count['Bus Stop'] , color="olive", ax=axes[0, 1], kde=False)
+sns.distplot(df_venues_count['Food'] , color="gold", ax=axes[0,2], kde=False)
+sns.distplot(df_venues_count['College'] , color="teal", ax=axes[1, 0], kde=False)
+sns.distplot(df_venues_count['Juice'] , color="red", ax=axes[1, 1], kde=False)
+sns.distplot(df_venues_count['Coffee'] , color="blue", ax=axes[1, 2], kde=False)
+```
+
+The distribution of other variables are quite similar. Now check their Pearson Correlation
+
+
+```python
+df_venues_count.corr()
+```
+
+It seems that 'Bus Stop' & 'Coffee' category are highly correlated.  
+Find **P-Value** of the variables
+
+By convention, when the p-value is:
+- < 0.001 we say there is strong evidence that the correlation is significant,
+- < 0.05; there is moderate evidence that the correlation is significant,
+- < 0.1; there is weak evidence that the correlation is significant, and
+- is >  0.1; there is no evidence that the correlation is significant.
+
+
+```python
+p_value_data = []
+for left in df_venues_count.columns:
+    p_values = [left]
+    for right in df_venues_count.columns:        
+        pearson_coef, p_value = stats.pearsonr(df_venues_count[left], df_venues_count[right])
+        if(p_value < 0.001):
+            p_values.append('strong')
+        elif(p_value < 0.05):
+            p_values.append('moderate')
+        elif(p_value < 0.1):
+            p_values.append('weak')
+        else:
+            p_values.append('no')            
+    p_value_data.append(p_values)
+```
+
+
+```python
+df_p_values = pd.DataFrame(p_value_data, columns=['Category'] + df_venues_count.columns.tolist())
+```
+
+
+```python
+df_p_values
+```
+
+The correlation between 'Bus Stop', 'Coffee', 'Restaurant' are statistically significant, and the coefficient of > 0.5 shows that the relationship is positive
+
+
+```python
+top_theatres
+```
+
+
+**Visualize the location of cinemas, target location and stakeholder's favorite cineams on the map**
+
+
+```python
+Chennai_coords = getLatLng('Chennai')
+```
+
+
+```python
+Chennai_map = folium.Map(location=Chennai_coords, zoom_start=13)
+
+cinemas_fg = folium.FeatureGroup()
+targets_fg = folium.FeatureGroup()
+top_fg = folium.FeatureGroup()
+
+for(location, address, latitude, longitude) in df_possible_locations.itertuples(index=False):
+    targets_fg.add_child(
+        folium.CircleMarker(
+            location=(latitude, longitude),
+            popup=location,
+            radius=7,
+            fill=True,
+            color='green',
+            fill_opacity=1.
+        )
+    )
+
+    
+top_theatres_rating = top_theatres.set_index('name')    
+name_list = top_theatres_rating.index.tolist()
+
+for (name, categories, address, latitude, longitude, id, rating, tips ) in theatres_merged.itertuples(index=False):    
+    
+    color = 'blue'        
+    popup = name
+    
+    if( name in name_list ):
+        color = 'red'    
+        popup = '{} - Rating: {} : TipCount: {}'.format(name, top_theatres_rating.loc[name,'rating'], top_theatres_rating.loc[name,'tips'])
+        
+    cinemas_fg.add_child(        
+        folium.CircleMarker(
+            location=(latitude, longitude),
+            popup=popup,
+            radius=5,
+            fill=True,
+            color=color,
+            fill_opacity=1.
+        )
+    )
+    
+Chennai_map.add_child(cinemas_fg)
+Chennai_map.add_child(targets_fg)
+```
+
+Most of Chennai movie theatres (blue circle) and popular cinemas (red circle) location are built near main road, and centralized in urban area of Chennai. The target locations (green circle) of new cinema.
+
+#### Machine Learning
+
+Now, let's use __Content-Based__ or __Item-Item recommendation systems__. In this case, I am going to try to figure out the boss's favorite new cinema location by counting number of nearby venues and ratings given.
+
+Normalize the values of venues dataframe by using MinMaxScaler method
+
+
+```python
+df_venues_count.head()
+```
+
+
+```python
+
+scaler = MinMaxScaler()
+```
+
+
+```python
+venues_normalized = scaler.fit_transform(df_venues_count)
+```
+
+
+```python
+df_venues_normalized = pd.DataFrame(
+    venues_normalized,
+    index=df_venues_count.index,
+    columns=df_venues_count.columns
+)
+```
+
+
+```python
+df_venues_normalized.head()
+```
+
+Merge the data with top theates list
+
+
+```python
+top_theatres_ratings_table = pd.merge(
+    top_theatres,
+    df_venues_normalized,
+    how='inner',
+    left_on='name',
+    right_index=True
+)
+top_theatres_ratings_table.drop(['name','rating','address','lat','lng',,'tips'], axis=1, inplace=True)
+top_theatres_ratings_table
+```
+
+Dot product to get the weight of rating on each category according to top theatres
+
+
+```python
+top_profile = top_theatres_ratings_table.transpose().dot(top_theatres['rating'])
+```
+
+
+```python
+top_profile
+```
+
+Normalize the values of target venues
+
+
+```python
+df_targets_normalized = pd.DataFrame(
+    scaler.transform(df_target_venues_count),
+    index=df_target_venues_count.index,
+    columns=df_target_venues_count.columns
+)
+```
+
+
+```python
+df_targets_normalized
+```
+
+## Results
+
+Results section where you discuss the results.
+
+With the top movie theatres and the complete list of cinemas and their venues count in hand, I am going to take the weighted average of every location based on the profile and recommend the top location that most satisfy it.
+
+
+```python
+df_recommend = (df_targets_normalized*top_profile).sum(axis=1)/top_profile.sum()
+df_recommend = df_recommend.reset_index(name='Rating')
+```
+
+
+```python
+df_possible_locations
+```
+
+
+```python
+df_final = pd.merge(
+    df_possible_locations,
+    df_recommend,
+    left_on='Location',
+    right_on='Location'
+)
+df_final.sort_values('Rating', ascending=False, inplace=True)
+```
+
+
+```python
+df_final
+```
+
+
+```python
+print('I should recommend the location "{}" of area "{}" to the stakeholder'.format(df_final.iat[0,0], df_final.iat[0,1]))
+```
+
+The result is reasonable. Location '**Option4 - Nungambakkam**' has the most number of venues in category "Bus Stop", "College", "Coffee" and "Juice". 
+
+
+```python
+df_target_venues_count.head()
+```
+
+Moreover, these categories are most concerned by the stakeholder according to profile rating
+
+
+```python
+top_profile.sort_values(ascending=False)
+```
+
+Therefore, Location "Option4 - Nungambakkam" should be recommeded to the stakeholder for the new movie theatre.
+
+## Discussion
+
+**Discussion section where you discuss any observations you noted and any recommendations you can make based on the results.**
+
+Number of venues of 5 target locations are actually better than the average
+
+Average count of venues in Chennai cinema location
+
+
+```python
+df_venues_count.mean().to_frame(name='Average Count')
+```
+
+Average count of venues in 5 target locations
+
+
+```python
+df_target_venues_count.mean().to_frame('Average Count')
+```
+
+I should contact local commercial property agents to find more suitable locations. Moreover, FourSquare is not popular in India, the data maybe out-dated or unreliable, the report should gather more data from other location data source such as Google Place API.
+
+## Conclusion 
+
+**Conclusion section where you conclude the report.**
+
+The stakeholder's problem is resolved. Stakeholder wants to find the best place to build a new cinema in Chennai, India, and the factors of "best location" is based on the number of venues in eating, shopping, transportation category around the location. Stakeholder also provide his favorite list of cinema to further explain what the "best location" is. Content-based filtering machine learning technique is the most suitable method to resolve the problem. It combines stakeholder's preference and cinema profile to make the recommendation result.
+
+The 5 target locations of new cinema may not be a good choices. Another key things to consider could be traffic & real estate value. As the weighting matrix is developed, I can quickly pick other locations and make the recommendation again.
